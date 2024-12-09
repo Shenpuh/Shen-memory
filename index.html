@@ -3,75 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Memory Game</title>
+    <title>Shen Memory Game</title>
     <style>
-        /* General styles for the body */
         body {
             font-family: Arial, sans-serif;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
             height: 100vh;
+            background-color: #f4f4f4;
             margin: 0;
-            background-color: #f0f0f0;
         }
-
-        h1 {
-            text-align: center;
-            font-size: 2em;
-        }
-
-        #game-board {
+        .game-container {
             display: grid;
-            grid-template-columns: repeat(4, 100px);
-            grid-template-rows: repeat(4, 100px);
-            gap: 10px;
+            grid-gap: 10px;
+            justify-content: center;
+            margin: 20px;
         }
-
         .card {
             width: 100px;
             height: 100px;
-            background-color: #ccc;
+            background-color: #2d3e50;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            border-radius: 10px;
             cursor: pointer;
-            border-radius: 5px;
-            transition: background-color 0.3s;
         }
-
-        .card.flipped {
-            background-color: white;
-        }
-
         .card img {
-            width: 80px;
-            height: 80px;
+            width: 80%;
+            height: 80%;
+            object-fit: cover;
+            border-radius: 10px;
             display: none;
         }
-
         .card.flipped img {
             display: block;
+        }
+        .card.flipped {
+            background-color: #fff;
+            color: #2d3e50;
+        }
+        .card.matched {
+            background-color: #6c757d;
+            pointer-events: none;
+        }
+        .score {
+            margin-bottom: 20px;
+        }
+        .clicks {
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>Memory Game</h1>
-    <div id="game-board"></div> <!-- This is where the game board will appear -->
+
+    <div>
+        <div class="score">Pairs found: <span id="score">0</span></div>
+        <div class="clicks">Clicks: <span id="clicks">0</span></div>
+        
+        <!-- Difficulty selection -->
+        <div>
+            <label for="difficulty">Choose Difficulty:</label>
+            <select id="difficulty" onchange="startGame()">
+                <option value="8">8 Pairs</option>
+                <option value="12">12 Pairs</option>
+                <option value="16">16 Pairs</option>
+            </select>
+        </div>
+        
+        <div class="game-container" id="gameContainer"></div>
+    </div>
 
     <script>
-        const gameBoard = document.getElementById('game-board');
-        const images = [
-            'https://i.imgur.com/aoizaFF.png', 'https://i.imgur.com/gmi8BB4.png', 'https://i.imgur.com/j0bxfQ8.png', 'https://i.imgur.com/NBnMj70.png',
-            'https://i.imgur.com/ORSPSv4.png', 'https://i.imgur.com/FLLzqWI.png', 'https://i.imgur.com/4OHwA5E.png', 'https://i.imgur.com/gFVArfP.png',
-            'https://i.imgur.com/HT3OwR1.png', 'https://i.imgur.com/K2Eohfg.png', 'https://i.imgur.com/AbFPg22.png', 'https://i.imgur.com/mu1pxV3.png',
-            'https://i.imgur.com/x1JvJY4.png', 'https://i.imgur.com/7SUqBvB.png', 'https://i.imgur.com/tOSsUqX.png', 'https://i.imgur.com/6VIe6CO.png'
+        let images = [
+            "https://i.imgur.com/aoizaFF.png",
+            "https://i.imgur.com/gmi8BB4.png",
+            "https://i.imgur.com/j0bxfQ8.png",
+            "https://i.imgur.com/NBnMj70.png",
+            "https://i.imgur.com/ORSPSv4.png",
+            "https://i.imgur.com/FLLzqWI.png",
+            "https://i.imgur.com/4OHwA5E.png",
+            "https://i.imgur.com/gFVArfP.png",
+            "https://i.imgur.com/HT3OwR1.png",
+            "https://i.imgur.com/K2Eohfg.png",
+            "https://i.imgur.com/AbFPg22.png",
+            "https://i.imgur.com/mu1pxV3.png",
+            "https://i.imgur.com/x1JvJY4.png",
+            "https://i.imgur.com/7SUqBvB.png",
+            "https://i.imgur.com/tOSsUqX.png",
+            "https://i.imgur.com/6VIe6CO.png"
         ];
 
+        let selectedImages = [];
         let flippedCards = [];
-        let matchedCards = 0;
+        let matchedCards = [];
+        let score = 0;
+        let clicks = 0;
+        let difficulty = 8; // Default difficulty (8 pairs)
+        const gameContainer = document.getElementById("gameContainer");
+        const scoreDisplay = document.getElementById("score");
+        const clicksDisplay = document.getElementById("clicks");
 
-        // Shuffle images
+        // Create the board layout based on difficulty
+        let rows, columns;
+
+        function startGame() {
+            difficulty = parseInt(document.getElementById("difficulty").value);
+            resetGame();
+            initializeGame();
+        }
+
+        function resetGame() {
+            score = 0;
+            clicks = 0;
+            flippedCards = [];
+            matchedCards = [];
+            scoreDisplay.textContent = score;
+            clicksDisplay.textContent = clicks;
+            gameContainer.innerHTML = "";
+        }
+
+        function initializeGame() {
+            // Adjust grid dimensions based on difficulty
+            if (difficulty === 8) {
+                rows = 4;
+                columns = 4;
+            } else if (difficulty === 12) {
+                rows = 4;
+                columns = 6;
+            } else if (difficulty === 16) {
+                rows = 6;
+                columns = 6;
+            }
+
+            selectedImages = images.slice(0, difficulty);
+            selectedImages = selectedImages.concat(selectedImages); // Double the images for pairs
+            shuffle(selectedImages);
+
+            gameContainer.style.gridTemplateColumns = `repeat(${columns}, 100px)`;
+            gameContainer.style.gridTemplateRows = `repeat(${rows}, 100px)`;
+
+            // Create the cards dynamically
+            selectedImages.forEach((image, index) => {
+                const card = document.createElement("div");
+                card.classList.add("card");
+                card.dataset.index = index;
+                const img = document.createElement("img");
+                img.src = image;
+                card.appendChild(img);
+                gameContainer.appendChild(card);
+
+                card.addEventListener("click", () => flipCard(card));
+            });
+        }
+
+        // Shuffle function
         function shuffle(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -79,56 +169,46 @@
             }
         }
 
-        // Create the game board
-        function createBoard() {
-            shuffle(images);
+        // Flip the card when clicked
+        function flipCard(card) {
+            if (flippedCards.length === 2 || card.classList.contains("flipped") || card.classList.contains("matched")) {
+                return;
+            }
 
-            images.forEach((image) => {
-                const card = document.createElement('div');
-                card.classList.add('card');
+            card.classList.add("flipped");
+            flippedCards.push(card);
+            clicks++;
+            clicksDisplay.textContent = clicks;
 
-                const img = document.createElement('img');
-                img.src = image;
-                card.appendChild(img);
-
-                card.addEventListener('click', () => flipCard(card, img));
-
-                gameBoard.appendChild(card);
-            });
-        }
-
-        // Flip the card
-        function flipCard(card, img) {
-            if (flippedCards.length < 2 && !card.classList.contains('flipped')) {
-                card.classList.add('flipped');
-                flippedCards.push({ card, img });
-
-                if (flippedCards.length === 2) {
-                    checkMatch();
-                }
+            if (flippedCards.length === 2) {
+                checkForMatch();
             }
         }
 
-        // Check if the two flipped cards match
-        function checkMatch() {
-            const [first, second] = flippedCards;
+        // Check if two flipped cards match
+        function checkForMatch() {
+            const [firstCard, secondCard] = flippedCards;
+            const firstImage = firstCard.querySelector("img").src;
+            const secondImage = secondCard.querySelector("img").src;
 
-            if (first.img.src === second.img.src) {
-                matchedCards++;
-                flippedCards = [];
-                if (matchedCards === images.length / 2) {
-                    setTimeout(() => alert('You Win!'), 500);
-                }
+            if (firstImage === secondImage) {
+                firstCard.classList.add("matched");
+                secondCard.classList.add("matched");
+                score++;
+                scoreDisplay.textContent = score;
             } else {
                 setTimeout(() => {
-                    first.card.classList.remove('flipped');
-                    second.card.classList.remove('flipped');
-                    flippedCards = [];
+                    firstCard.classList.remove("flipped");
+                    secondCard.classList.remove("flipped");
                 }, 1000);
             }
+
+            flippedCards = [];
         }
 
-        createBoard();
+        // Initialize the game when the page loads
+        startGame();
     </script>
+
 </body>
 </html>
